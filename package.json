@@ -1,0 +1,19 @@
+{
+  "name": "@creationix/caify",
+  "version": "0.0.1",
+  "keywords": ["sha256", "upload", "storage"],
+  "description": "Caify for web uploads",
+  "author": "Tim Caswell <tim@creationix.com>",
+  "license": "ISC",
+  "main": "dist/caify.js",
+  "types": "./dist/caify.d.ts",
+  "type": "module",
+  "repository": "https://github.com/creationix/caify-ts",
+  "scripts": {
+    "test": "bun run src/test-caify.ts"
+  },
+  "files": ["dist", "README.md"],
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4"
+  }
+}

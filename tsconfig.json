@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM"],
+    "target": "ESNext",
+    "module": "ESNext",
+    "removeComments": true,
+    "declaration": true,
+    "outDir": "dist"
+  },
+  "exclude": ["node_modules"],
+  "files": ["src/caify.ts"]
+}
