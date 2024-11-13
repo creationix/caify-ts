@@ -97,11 +97,11 @@ export function sync(storage: Storage, on: CaifyServer): CaifyClient {
   let hashAlgorithm: string
 
   let pendingWants = 0
-  const maxPendingWants = 10
+  const maxPendingWants = 2
   const queue: { hash: string; level: number }[] = []
   const wants: Record<string, number> = {}
 
-  const maxPendingScans = 2
+  const maxPendingScans = 1
   let pendingScans = 0
   const scanQueue: { chunk: Uint8Array; level: number }[] = []
 

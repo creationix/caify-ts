@@ -50,10 +50,10 @@ export function sync(storage, on) {
     let hashSize;
     let hashAlgorithm;
     let pendingWants = 0;
-    const maxPendingWants = 10;
+    const maxPendingWants = 2;
     const queue = [];
     const wants = {};
-    const maxPendingScans = 2;
+    const maxPendingScans = 1;
     let pendingScans = 0;
     const scanQueue = [];
     return {

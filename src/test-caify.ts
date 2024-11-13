@@ -1,16 +1,16 @@
 import { process, sync } from './caify.ts'
 import type { Storage } from './caify.ts'
 
-const hashSize = 20
-const desiredChunkSize = 2 ** 18
+const hashSize = 32
+const desiredChunkSize = 2 ** 20
 const chunkSize = desiredChunkSize - (desiredChunkSize % hashSize)
-const hashAlgorithm = 'SHA-1'
+const hashAlgorithm = 'SHA-256'
 
 const chunks = {}
 
 const server = sync(newRealStorage(), {
   want(hash, level) {
-    // console.log('SERVER-WANT', hash, level)
+    console.log('SERVER-WANT', hash, level)
     const chunk = chunks[hash]
     if (!chunk) {
       throw new Error(`Chunk not found: ${hash}`)
@@ -42,7 +42,7 @@ function newRealStorage(): Storage {
     async has(hash) {
       // console.log('STORAGE:HAS', hash)
       // Simulate lan latency
-      // await new Promise((resolve) => setTimeout(resolve, 1))
+      await new Promise((resolve) => setTimeout(resolve, 1))
       return await Bun.file(hashToFilename(hash)).exists()
     },
     async get(hash) {
@@ -52,8 +52,8 @@ function newRealStorage(): Storage {
         return
       }
       let data = await file.bytes()
-      // Simulate lan latency
-      await new Promise((resolve) => setTimeout(resolve, Math.random() * 10 + data.length / 100))
+      // Simulate internet latency with 10-40ms latency + 24 Mbit bandwidth
+      await new Promise((resolve) => setTimeout(resolve, Math.random() * 30 + 10 + data.length / 3000))
       if (compress) {
         data = Bun.gunzipSync(data)
       }
@@ -61,11 +61,11 @@ function newRealStorage(): Storage {
       return data
     },
     async put(hash, data) {
-      // console.log('STORAGE:PUT', hash)
+      console.log('STORAGE:PUT', hash)
       if (compress) {
         data = await Bun.gzipSync(data)
       }
-      await new Promise((resolve) => setTimeout(resolve, Math.random() * 10 + data.length / 100))
+      await new Promise((resolve) => setTimeout(resolve, Math.random() * 30 + 10 + data.length / 3000))
       await Bun.write(hashToFilename(hash), data)
     },
   }
