@@ -5,7 +5,10 @@ const defaultOptions = {
 };
 export async function process(data, options = {}) {
     const { chunkSize, hashSize, hashAlgorithm } = { ...defaultOptions, ...options };
-    const chunks = {};
+    if (chunkSize % hashSize) {
+        throw new Error('chunkSize must be multiple of hashSize');
+    }
+    const chunks = options.chunks ?? {};
     let hash;
     let hashLevel;
     await processChunk(data, 0);
@@ -13,12 +16,15 @@ export async function process(data, options = {}) {
     async function processChunk(chunk, level) {
         const len = chunk.length;
         if (len > chunkSize) {
-            const chunkCount = Math.ceil(len / chunkSize);
+            const chunkCount = Math.floor(len / chunkSize);
             const manifest = new Uint8Array(chunkCount * hashSize);
             for (let i = 0; i < chunkCount; i++) {
                 const start = i * chunkSize;
                 const end = Math.min(start + chunkSize, len);
                 const hashBuffer = await processChunk(chunk.subarray(start, end), level);
+                if (hashBuffer.length !== hashSize) {
+                    throw new Error(`Hash size mismatch: ${hashBuffer.length} != ${hashSize}`);
+                }
                 manifest.set(hashBuffer, i * hashSize);
             }
             return processChunk(manifest, level + 1);
@@ -144,8 +150,14 @@ export function sync(storage, on) {
         }
         const { chunk, level } = next;
         pendingScans++;
+        if (chunk.length % hashSize !== 0) {
+            throw new Error(`Invalid chunk length ${chunk.length}/${hashSize}`);
+        }
         for (let i = 0, l = chunk.length; i < l; i += hashSize) {
             const hash = toHex(chunk.subarray(i, i + hashSize));
+            if (hash.length !== hashSize * 2) {
+                throw new Error(`Invalid hash length ${hash.length}/${hashSize * 2}`);
+            }
             if (level > 1) {
                 const child = await storage.get(hash);
                 if (child) {

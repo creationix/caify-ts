@@ -2,9 +2,10 @@ export interface StoreOptions {
   chunkSize?: number // The max of each chunk
   hashSize?: number // The size of the hash
   hashAlgorithm?: AlgorithmIdentifier // The hash algorithm
+  chunks?: Record<string, Uint8Array> // The chunks to use
 }
 
-const defaultOptions: Required<StoreOptions> = {
+const defaultOptions: StoreOptions = {
   chunkSize: 2 ** 16, // full 16-bit size
   hashSize: 32, // full sha256 hash
   hashAlgorithm: 'SHA-256',
@@ -43,7 +44,11 @@ export interface Storage {
 // Process an arbitrarily sized chunk of data and return the root caify hash
 export async function process(data: Uint8Array, options: StoreOptions = {}) {
   const { chunkSize, hashSize, hashAlgorithm } = { ...defaultOptions, ...options }
-  const chunks: Record<string, Uint8Array> = {}
+  // Ensure chunk size is multiple of hash size
+  if (chunkSize % hashSize) {
+    throw new Error('chunkSize must be multiple of hashSize')
+  }
+  const chunks: Record<string, Uint8Array> = options.chunks ?? {}
   let hash: string
   let hashLevel: number
   await processChunk(data, 0)
@@ -53,12 +58,15 @@ export async function process(data: Uint8Array, options: StoreOptions = {}) {
     const len = chunk.length
     // If the chunk is larger than the chunk size, split it into chunks recursively
     if (len > chunkSize) {
-      const chunkCount = Math.ceil(len / chunkSize)
+      const chunkCount = Math.floor(len / chunkSize)
       const manifest = new Uint8Array(chunkCount * hashSize)
       for (let i = 0; i < chunkCount; i++) {
         const start = i * chunkSize
         const end = Math.min(start + chunkSize, len)
         const hashBuffer = await processChunk(chunk.subarray(start, end), level)
+        if (hashBuffer.length !== hashSize) {
+          throw new Error(`Hash size mismatch: ${hashBuffer.length} != ${hashSize}`)
+        }
         manifest.set(hashBuffer, i * hashSize)
       }
       return processChunk(manifest, level + 1)
@@ -199,8 +207,14 @@ export function sync(storage: Storage, on: CaifyServer): CaifyClient {
     }
     const { chunk, level } = next
     pendingScans++
+    if (chunk.length % hashSize !== 0) {
+      throw new Error(`Invalid chunk length ${chunk.length}/${hashSize}`)
+    }
     for (let i = 0, l = chunk.length; i < l; i += hashSize) {
       const hash = toHex(chunk.subarray(i, i + hashSize))
+      if (hash.length !== hashSize * 2) {
+        throw new Error(`Invalid hash length ${hash.length}/${hashSize * 2}`)
+      }
       if (level > 1) {
         const child = await storage.get(hash)
         if (child) {

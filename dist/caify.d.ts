@@ -2,6 +2,7 @@ export interface StoreOptions {
     chunkSize?: number;
     hashSize?: number;
     hashAlgorithm?: AlgorithmIdentifier;
+    chunks?: Record<string, Uint8Array>;
 }
 export interface CaifyClient {
     caify: (chunkSize: number, hashSize: number, hashAlgorithm: string) => void;
